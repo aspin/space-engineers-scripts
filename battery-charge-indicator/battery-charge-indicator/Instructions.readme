@@ -1,0 +1,2 @@
+﻿Change the `prefix` variable to be whatever you name the ship to be.
+Batteries must be named `{prefix} Battery {count}`, and cockpit must be `{prefix} Cockpit`.
