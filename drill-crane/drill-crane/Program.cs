@@ -22,26 +22,31 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
-        readonly string prefix = "Drill";
+        // config for naming
+        readonly string prefix = "Drill Rig";
+
+        // config for amount of clearance to allow fast movement
+        readonly float verticalClearance = 1.5f;
+
+        // config for speed of drill movement
+        readonly float safeVerticalDrillSpeed = 0.3f;
+        readonly float safeHorizontalSpeed = 0.5f;
+        readonly float safeAngleRPM = 1f;
+        readonly float fastSpeed = 1f;
+
+        // config for amount drill should move with each action
+        readonly float horizontalIncrement = 0.5f;
+        readonly float angleIncrement = 3f / 180f * (float)Math.PI;
+
         readonly List<IMyPistonBase> horizontalPistons;
         readonly List<IMyPistonBase> verticalPistons;
         readonly IMyMotorAdvancedStator rotor;
         readonly IMyShipDrill drill;
 
+        // state machine
         Boolean isActive = false;
         string actionInProgress;
-
-        // TODO: add config for amount that is safe to go quickly vertically
-
-        float safeVerticalDrillSpeed = 0.3f;
-        float safeHorizontalSpeed = 0.5f;
-        float fastSpeed = 1f;
-        float safeAngleRPM = 1f;
-
-        float horizontalIncrement = 0.5f;
-        float angleIncrement = 3f/180f * (float) Math.PI;
-
-        // assume all pistons extend uniformly
+        string actionStage;
         float targetHorizontalPosition;
         float targetAngle;
 
@@ -52,22 +57,24 @@ namespace IngameScript
             horizontalPistons = new List<IMyPistonBase>();
             verticalPistons = new List<IMyPistonBase>();
 
-            List<IMyPistonBase> pistons = new List<IMyPistonBase>();
-            GridTerminalSystem.GetBlocksOfType(pistons);
+            string hPistonGroupName = String.Format("{0} Pistons H", prefix);
+            string vPistonGroupName = String.Format("{0} Pistons V", prefix);
 
-            foreach (IMyPistonBase piston in pistons)
+            IMyBlockGroup hPistonGroup = GridTerminalSystem.GetBlockGroupWithName(hPistonGroupName);
+            if (hPistonGroup == null)
             {
-                if (piston.CustomName == String.Format("{0} Piston H", prefix))
-                {
-                    horizontalPistons.Add(piston);
-
-                }
-                else if (piston.CustomName == String.Format("{0} Piston V", prefix))
-                {
-                    verticalPistons.Add(piston);
-
-                }
+                Echo(String.Format("horizontal piston group ({0}) not found", hPistonGroupName));
+                return;
             }
+            IMyBlockGroup vPistonGroup = GridTerminalSystem.GetBlockGroupWithName(String.Format("{0} Pistons V", prefix));
+            if (vPistonGroup == null)
+            {
+                Echo(String.Format("vertical piston group ({0}) not found", vPistonGroupName));
+                return;
+            }
+
+            hPistonGroup.GetBlocksOfType(horizontalPistons);
+            vPistonGroup.GetBlocksOfType(verticalPistons);
 
             rotor = GridTerminalSystem.GetBlockWithName(String.Format("{0} Rotor", prefix)) as IMyMotorAdvancedStator;
             drill = GridTerminalSystem.GetBlockWithName(String.Format("{0} Drill", prefix)) as IMyShipDrill;
@@ -79,7 +86,7 @@ namespace IngameScript
             // short circuit conditions
             if (rotor == null || drill == null || horizontalPistons.Count == 0 || verticalPistons.Count == 0)
             {
-                Echo("no rotor or drill found");
+                Echo(String.Format("required components missing: [rotor {0}] [drill {1}] [hPistons {2}] [vPistons {3}]", rotor == null, drill == null, horizontalPistons.Count, verticalPistons.Count));
                 return;
             }
 
@@ -109,7 +116,6 @@ namespace IngameScript
                     isActive = true;
                     break;
                 case "retractAndDrill":
-                    drill.Enabled = true;
                     RetractVertical();
 
                     isActive = true;
@@ -117,7 +123,6 @@ namespace IngameScript
                     Echo(String.Format("[retract]: target horizontal position {0}", targetHorizontalPosition));
                     break;
                 case "extendAndDrill":
-                    drill.Enabled = true;
                     RetractVertical();
 
                     isActive = true;
@@ -125,7 +130,6 @@ namespace IngameScript
                     Echo(String.Format("[extend]: target horizontal position {0}", targetHorizontalPosition));
                     break;
                 case "rotateCCWAndDrill":
-                    drill.Enabled = true;
                     RetractVertical();
 
                     isActive = true;
@@ -133,12 +137,17 @@ namespace IngameScript
                     Echo(String.Format("[ccw]: target angle {0}", targetAngle));
                     break;
                 case "rotateCWAndDrill":
-                    drill.Enabled = true;
                     RetractVertical();
 
                     isActive = true;
                     targetAngle = rotor.Angle + angleIncrement;
                     Echo(String.Format("[cw]: target angle {0}", targetAngle));
+                    break;
+
+                case "extendDrillLine":
+                    RetractVertical();
+                    isActive = true;
+                    Echo("[edl]");
                     break;
                 default:
                     Echo(String.Format("unknown action: {0}", action));
@@ -148,6 +157,7 @@ namespace IngameScript
             if (isActive)
             {
                 Runtime.UpdateFrequency = UpdateFrequency.Update100;
+                actionStage = "initial";
             }
         }
 
@@ -160,10 +170,10 @@ namespace IngameScript
                 case "retractAll":
                     Boolean fullVerticalExtension = FullVerticalExtension();
                     Boolean fullHorizontalRetraction = FullHorizontalRetraction();
+                    Boolean reachedAngle = rotor.Angle == rotor.UpperLimitRad;
 
-                    if (fullVerticalExtension && fullHorizontalRetraction)
+                    if (fullVerticalExtension && fullHorizontalRetraction && reachedAngle)
                     {
-                        isActive = false;
                         DisableAll();
                         break;
                     }
@@ -173,7 +183,7 @@ namespace IngameScript
                         SetPistonsEnabled(verticalPistons, false);
                         SetPistonsSpeed(horizontalPistons, -fastSpeed);
                         SetPistonsEnabled(horizontalPistons, true);
-                        rotor.TargetVelocityRPM = 100f; // TODO: rotate all the way positive
+                        rotor.TargetVelocityRPM = 100f;
                         break;
                     }
 
@@ -202,19 +212,112 @@ namespace IngameScript
             }
         }
 
+        // extension = all the way up, e.g. drill out of ground
+        private Boolean FullVerticalExtension()
+        {
+            return verticalPistons.Aggregate(
+                true,
+                (extended, piston) => extended && (piston.CurrentPosition == piston.HighestPosition)
+            );
+        }
+
+        // how deep the drill is in the ground right now
+        private float VerticalRetraction()
+        {
+            return verticalPistons.Aggregate(
+                0f,
+                (sum, piston) => sum + (piston.HighestPosition - piston.CurrentPosition)
+            );
+        }
+
+        // extension = all the way down, e.g. drill all the way in ground
+        private Boolean FullVerticalRetraction()
+        {
+            return verticalPistons.Aggregate(
+                true,
+                (extended, piston) => extended && (piston.CurrentPosition == piston.LowestPosition)
+            );
+        }
+
+        // retraction = all the way in, e.g. drill closest to origin
+        private Boolean FullHorizontalRetraction()
+        {
+            return horizontalPistons.Aggregate(
+                true,
+                (sum, piston) => sum && (piston.CurrentPosition == piston.LowestPosition)
+            );
+        }
+
+        // assume all pistons must be extended to same number
+        private Boolean ReachedTargetHorizontalExtension(Boolean greater)
+        {
+            if (greater)
+            {
+                return horizontalPistons.Aggregate(
+                    true,
+                    (sum, piston) => sum && (piston.CurrentPosition >= targetHorizontalPosition)
+                );
+            }
+            else
+            {
+                return horizontalPistons.Aggregate(
+                    true,
+                    (sum, piston) => sum && (piston.CurrentPosition <= targetHorizontalPosition)
+                );
+            }
+        }
+
+        private float SafeVerticalDrillSpeed()
+        {
+            return (float)(safeVerticalDrillSpeed / (double)verticalPistons.Count);
+        }
+
+        private void DisableAll()
+        {
+            SetPistonsEnabled(horizontalPistons, false);
+            SetPistonsEnabled(verticalPistons, false);
+            rotor.Enabled = false;
+            drill.Enabled = false;
+            isActive = false;
+            actionInProgress = "";
+            actionStage = "";
+        }
+        private void StartDrill()
+        {
+            Echo(String.Format("checking drill speed {0}", VerticalRetraction()));
+            drill.Enabled = true;
+
+            float speed = -SafeVerticalDrillSpeed();
+            if (VerticalRetraction() < verticalClearance)
+            {
+                speed = -fastSpeed;
+            }
+
+            SetPistonsSpeed(verticalPistons, speed);
+            SetPistonsEnabled(verticalPistons, true);
+            SetPistonsEnabled(horizontalPistons, false);
+            rotor.Enabled = false;
+        }
         private void MoveHorizontalAndDrill(float speed, string echoPrefix)
         {
             Boolean fullVerticalRetraction = FullVerticalRetraction();
+            Boolean fullVerticalExtension = FullVerticalExtension();
             Boolean reachedHorizontal = ReachedTargetHorizontalExtension(speed > 0);
 
-            if (fullVerticalRetraction && reachedHorizontal)
+            if (actionStage == "drill" && fullVerticalRetraction && reachedHorizontal)
             {
                 Echo(String.Format("[{0}]: complete. shutting off...", echoPrefix));
                 DisableAll();
                 return;
             }
-            // TODO: need safe condition where dont start moving horizontally until full vertical extended
 
+            // still retracting drill; wait for full extension
+            if (actionStage == "initial" && !fullVerticalExtension)
+            {
+                return;
+            }
+
+            actionStage = "drill";
             if (!reachedHorizontal)
             {
                 Echo(String.Format("[{0}]: horizontal to target {1}...", echoPrefix, targetHorizontalPosition));
@@ -238,6 +341,7 @@ namespace IngameScript
         private void MoveAngleAndDrill(float rpm, string echoPrefix)
         {
             Boolean fullVerticalRetraction = FullVerticalRetraction();
+            Boolean fullVerticalExtension = FullVerticalExtension();
             Boolean reachedAngle;
             if (rpm > 0)
             {
@@ -256,6 +360,14 @@ namespace IngameScript
                 return;
             }
 
+            // still retracting drill; wait for full extension
+            if (actionStage == "initial" && !fullVerticalExtension)
+            {
+                return;
+            }
+
+            actionStage = "drill";
+
             if (!reachedAngle)
             {
                 Echo(String.Format("[{0}]: current angle {1} to target {2}...", echoPrefix, rotor.Angle, targetAngle));
@@ -271,73 +383,6 @@ namespace IngameScript
             }
         }
 
-        private void StartDrill()
-        {
-            SetPistonsSpeed(verticalPistons, -SafeVerticalDrillSpeed());
-            SetPistonsEnabled(verticalPistons, true);
-            SetPistonsEnabled(horizontalPistons, false);
-            rotor.Enabled = false;
-        }
-
-        // extension = all the way up, e.g. drill out of ground
-        private Boolean FullVerticalExtension()
-        {
-            return verticalPistons.Aggregate(
-                true,
-                (extended, piston) => extended && (piston.CurrentPosition == piston.HighestPosition)
-            );
-        }
-
-        // extension = all the way down, e.g. drill all the way in ground
-        private Boolean FullVerticalRetraction()
-        {
-            return verticalPistons.Aggregate(
-                true,
-                (extended, piston) => extended && (piston.CurrentPosition == piston.LowestPosition)
-            );
-        }
-
-        // retraction = all the way in, e.g. drill closest to origin
-        private Boolean FullHorizontalRetraction()
-        {
-            return horizontalPistons.Aggregate(
-                true,
-                (sum, piston) => sum && (piston.CurrentPosition == piston.LowestPosition)
-            );
-        }
-
-        private Boolean ReachedTargetHorizontalExtension(Boolean greater)
-        {
-            if (greater)
-            {
-                return horizontalPistons.Aggregate(
-                    true,
-                    (sum, piston) => sum && (piston.CurrentPosition >= targetHorizontalPosition)
-                );
-            } 
-            else
-            {
-                return horizontalPistons.Aggregate(
-                    true,
-                    (sum, piston) => sum && (piston.CurrentPosition <= targetHorizontalPosition)
-                );
-            }
-        }
-
-        private float SafeVerticalDrillSpeed()
-        {
-            return (float) (safeVerticalDrillSpeed / (double) verticalPistons.Count);
-        }
-
-        private void DisableAll()
-        {
-            SetPistonsEnabled(horizontalPistons, false);
-            SetPistonsEnabled(verticalPistons, false);
-            rotor.Enabled = false;
-            drill.Enabled = false;
-            isActive = false;
-            actionInProgress = "";
-        }
 
         private void RetractVertical()
         {
