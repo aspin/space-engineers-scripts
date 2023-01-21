@@ -1,4 +1,5 @@
-﻿using Sandbox.Game.EntityComponents;
+﻿using Mixins;
+using Sandbox.Game.EntityComponents;
 using Sandbox.ModAPI.Ingame;
 using Sandbox.ModAPI.Interfaces;
 using SpaceEngineers.Game.ModAPI.Ingame;
@@ -33,6 +34,8 @@ namespace IngameScript
             Runtime.UpdateFrequency = UpdateFrequency.Update100;
 
             batteries = new List<IMyBatteryBlock>();
+
+            StateMachine sm = new StateMachine();
 
             IMyBatteryBlock battery = getBattery(prefix, 1);
             while (battery != null)

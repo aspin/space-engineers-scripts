@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.33214.272
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "mixins", "mixins\mixins.shproj", "{BB54316C-5AF9-4A15-A059-FF7BF4478B86}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "battery-charge-indicator", "battery-charge-indicator\battery-charge-indicator.csproj", "{0FE3A521-5314-4158-8BD2-C30B72B2EE71}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "drill-crane", "..\drill-crane\drill-crane.csproj", "{F29B7ADA-E3C2-4573-9512-BD9770E87133}"
+EndProject
+Global
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		mixins\mixins.projitems*{0fe3a521-5314-4158-8bd2-c30b72b2ee71}*SharedItemsImports = 4
+		mixins\mixins.projitems*{bb54316c-5af9-4a15-a059-ff7bf4478b86}*SharedItemsImports = 13
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0FE3A521-5314-4158-8BD2-C30B72B2EE71}.Debug|x64.ActiveCfg = Debug|x64
+		{0FE3A521-5314-4158-8BD2-C30B72B2EE71}.Debug|x64.Build.0 = Debug|x64
+		{F29B7ADA-E3C2-4573-9512-BD9770E87133}.Debug|x64.ActiveCfg = Debug|x64
+		{F29B7ADA-E3C2-4573-9512-BD9770E87133}.Debug|x64.Build.0 = Debug|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {5DA86C4F-E01A-4158-B388-9D7EF58DCE81}
+	EndGlobalSection
+EndGlobal
