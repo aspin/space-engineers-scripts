@@ -35,8 +35,6 @@ namespace IngameScript
 
             batteries = new List<IMyBatteryBlock>();
 
-            StateMachine sm = new StateMachine();
-
             IMyBatteryBlock battery = getBattery(prefix, 1);
             while (battery != null)
             {

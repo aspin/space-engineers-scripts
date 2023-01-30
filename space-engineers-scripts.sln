@@ -7,12 +7,13 @@ Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "mixins", "mixins\mixins.shp
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "battery-charge-indicator", "battery-charge-indicator\battery-charge-indicator.csproj", "{0FE3A521-5314-4158-8BD2-C30B72B2EE71}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "drill-crane", "..\drill-crane\drill-crane.csproj", "{F29B7ADA-E3C2-4573-9512-BD9770E87133}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "drill-crane", "drill-crane\drill-crane.csproj", "{F29B7ADA-E3C2-4573-9512-BD9770E87133}"
 EndProject
 Global
 	GlobalSection(SharedMSBuildProjectFiles) = preSolution
 		mixins\mixins.projitems*{0fe3a521-5314-4158-8bd2-c30b72b2ee71}*SharedItemsImports = 4
 		mixins\mixins.projitems*{bb54316c-5af9-4a15-a059-ff7bf4478b86}*SharedItemsImports = 13
+		mixins\mixins.projitems*{f29b7ada-e3c2-4573-9512-bd9770e87133}*SharedItemsImports = 4
 	EndGlobalSection
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
